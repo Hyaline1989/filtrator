@@ -1,0 +1,113 @@
+ body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #f5f7fa;
+        }
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 30px;
+        }
+        .filters {
+            background: #fff;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+        .filter-group {
+            margin-bottom: 0;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #34495e;
+        }
+        input, select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e1e8ed;
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        input:focus, select:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+        #results {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+        }
+        .object-card {
+            background: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 3px 15px rgba(0,0,0,0.1);
+            border-left: 5px solid #3498db;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .object-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+        }
+        .object-card h3 {
+            margin-top: 0;
+            color: #2c3e50;
+            border-bottom: 2px solid #f8f9fa;
+            padding-bottom: 10px;
+        }
+        .object-card h3 a {
+            color: #2c3e50;
+            text-decoration: none;
+        }
+        .object-card h3 a:hover {
+            color: #3498db;
+        }
+        .object-card p {
+            margin: 8px 0;
+            font-size: 0.95em;
+            color: #555;
+        }
+        .object-card strong {
+            color: #2c3e50;
+        }
+        .object-card .link {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid #ecf0f1;
+        }
+        .object-card .link a {
+            color: #3498db;
+            text-decoration: none;
+            font-size: 0.9em;
+            display: inline-flex;
+            align-items: center;
+        }
+        .object-card .link a:hover {
+            text-decoration: underline;
+        }
+        .no-results {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 40px;
+            background: #fff;
+            border-radius: 10px;
+            font-style: italic;
+            color: #7f8c8d;
+            font-size: 1.1em;
+        }
+        .results-count {
+            text-align: center;
+            margin-bottom: 15px;
+            color: #7f8c8d;
+            font-size: 0.9em;
+        }

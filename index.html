@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Подбор объекта для вахты</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <h1>🎯 Подбор объекта для вахты</h1>
+
+    <div class="filters">
+        <div class="filter-group">
+            <label for="age">Возраст кандидата:</label>
+            <input type="number" id="age" min="18" max="65" value="25">
+        </div>
+
+        <div class="filter-group">
+            <label for="gender">Пол:</label>
+            <select id="gender">
+                <option value="мужчина">Мужчина</option>
+                <option value="женщина">Женщина</option>
+            </select>
+        </div>
+
+        <div class="filter-group">
+            <label for="nationality">Гражданство:</label>
+            <select id="nationality">
+                <option value="РФ">РФ</option>
+                <option value="РБ">РБ</option>
+                <option value="СНГ">СНГ</option>
+            </select>
+        </div>
+
+        <div class="filter-group">
+            <label for="hasConviction">Наличие судимости:</label>
+            <select id="hasConviction">
+                <option value="false">Нет судимости</option>
+                <option value="true">Есть судимость</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="results-count" id="resultsCount"></div>
+
+    <div id="results">
+        <!-- Сюда JavaScript вставит карточки объектов -->
+    </div>
+
+    <script>
+        // БАЗА ДАННЫХ ОБЪЕКТОВ С ССЫЛКАМИ
+        const objects = [
+            {
+                id: 1,
+                name: "Сберлогистика",
+                ageMin: 18,
+                ageMax: 45,
+                allowedGenders: ["мужчина"],
+                allowedNationalities: ["РФ", "РБ"],
+                allowsConviction: false,
+                link: "https://docs.google.com/spreadsheets/d/13FLpkCRuY8Bhdq8VzAsUMXlH-O6DcnwMlb3a1d82z44/edit?gid=1671362639#gid=1671362639"
+            },
+            {
+                id: 2,
+                name: "СДТ",
+                ageMin: 18,
+                ageMax: 55,
+                allowedGenders: ["мужчина", "женщина"],
+                allowedNationalities: ["РФ"],
+                allowsConviction: true,
+                link: "https://docs.google.com/spreadsheets/d/13FLpkCRuY8Bhdq8VzAsUMXlH-O6DcnwMlb3a1d82z44/edit?gid=807193246#gid=807193246"
+            },
+            {
+                id: 3,
+                name: "Креветки Клин",
+                ageMin: 18,
+                ageMax: 50,
+                allowedGenders: ["мужчина", "женщина"],
+                allowedNationalities: ["РФ", "РБ", "СНГ"],
+                allowsConviction: true,
+                link: "https://docs.google.com/spreadsheets/d/13FLpkCRuY8Bhdq8VzAsUMXlH-O6DcnwMlb3a1d82z44/edit?gid=2035276078#gid=2035276078"
+            },
+            {
+                id: 4,
+                name: "Major",
+                ageMin: 18,
+                ageMax: 55,
+                allowedGenders: ["мужчина", "женщина"],
+                allowedNationalities: ["РФ", "РБ"],
+                allowsConviction: false,
+                link: "https://docs.google.com/spreadsheets/d/13FLpkCRuY8Bhdq8VzAsUMXlH-O6DcnwMlb3a1d82z44/edit?gid=1066301663#gid=1066301663"
+            },
+            {
+                id: 5,
+                name: "Спортмастер",
+                ageMin: 18,
+                ageMax: 50,
+                allowedGenders: ["мужчина", "женщина"],
+                allowedNationalities: ["РФ"],
+                allowsConviction: false,
+                link: "https://docs.google.com/spreadsheets/d/13FLpkCRuY8Bhdq8VzAsUMXlH-O6DcnwMlb3a1d82z44/edit?gid=2015665303#gid=2015665303"
+            },
+            {
+                id: 6,
+                name: "Метро",
+                ageMin: 18,
+                ageMax: 45,
+                allowedGenders: ["мужчина"],
+                allowedNationalities: ["РФ"],
+                allowsConviction: true,
+                link: "https://docs.google.com/spreadsheets/d/13FLpkCRuY8Bhdq8VzAsUMXlH-O6DcnwMlb3a1d82z44/edit?gid=2037581346#gid=2037581346"
+            },
+            {
+                id: 7,
+                name: "Клин Мясо",
+                ageMin: 18,
+                ageMax: 60,
+                allowedGenders: ["мужчина", "женщина"],
+                allowedNationalities: ["РФ", "РБ"],
+                allowsConviction: true,
+                link: "https://docs.google.com/spreadsheets/d/13FLpkCRuY8Bhdq8VzAsUMXlH-O6DcnwMlb3a1d82z44/edit?gid=484336549#gid=484336549"
+            },
+            {
+                id: 8,
+                name: "Цветы Раменское",
+                ageMin: 18,
+                ageMax: 50,
+                allowedGenders: ["мужчина", "женщина"],
+                allowedNationalities: ["РФ", "РБ"],
+                allowsConviction: true,
+                link: "https://docs.google.com/spreadsheets/d/13FLpkCRuY8Bhdq8VzAsUMXlH-O6DcnwMlb3a1d82z44/edit?gid=1489900442#gid=1489900442"
+            },
+            {
+                id: 9,
+                name: "Агама",
+                ageMin: 25,
+                ageMax: 40,
+                allowedGenders: ["мужчина", "женщина"],
+                allowedNationalities: ["РФ"],
+                allowsConviction: true,
+                link: "https://docs.google.com/spreadsheets/d/13FLpkCRuY8Bhdq8VzAsUMXlH-O6DcnwMlb3a1d82z44/edit?gid=371889370#gid=371889370"
+            },
+            {
+                id: 10,
+                name: "ФитнесШок",
+                ageMin: 18,
+                ageMax: 60,
+                allowedGenders: ["мужчина", "женщина"],
+                allowedNationalities: ["РФ", "РБ"],
+                allowsConviction: true,
+                link: "https://docs.google.com/spreadsheets/d/13FLpkCRuY8Bhdq8VzAsUMXlH-O6DcnwMlb3a1d82z44/edit?gid=1609895640#gid=1609895640"
+            },
+            {
+                id: 11,
+                name: "Тамбовский бекон",
+                ageMin: 18,
+                ageMax: 50,
+                allowedGenders: ["мужчина", "женщина"],
+                allowedNationalities: ["РФ"],
+                allowsConviction: true,
+                link: "https://docs.google.com/spreadsheets/d/13FLpkCRuY8Bhdq8VzAsUMXlH-O6DcnwMlb3a1d82z44/edit?gid=2134096102#gid=2134096102"
+            },
+            {
+                id: 12,
+                name: "Павловская курвочка",
+                ageMin: 18,
+                ageMax: 55,
+                allowedGenders: ["мужчина", "женщина"],
+                allowedNationalities: ["РФ", "РБ", "СНГ"],
+                allowsConviction: true,
+                link: "https://docs.google.com/spreadsheets/d/13FLpkCRuY8Bhdq8VzAsUMXlH-O6DcnwMlb3a1d82z44/edit?gid=459944799#gid=459944799"
+            },
+            {
+                id: 13,
+                name: "АртПак",
+                ageMin: 18,
+                ageMax: 50,
+                allowedGenders: ["мужчина", "женщина"],
+                allowedNationalities: ["РФ", "РБ"],
+                allowsConviction: true,
+                link: "https://docs.google.com/spreadsheets/d/13FLpkCRuY8Bhdq8VzAsUMXlH-O6DcnwMlb3a1d82z44/edit?gid=1786219261#gid=1786219261"
+            },
+            {
+                id: 14,
+                name: "Мяснов",
+                ageMin: 18,
+                ageMax: 55,
+                allowedGenders: ["мужчина", "женщина"],
+                allowedNationalities: ["РФ", "РБ"],
+                allowsConviction: true,
+                link: "https://docs.google.com/spreadsheets/d/13FLpkCRuY8Bhdq8VzAsUMXlH-O6DcnwMlb3a1d82z44/edit?gid=912447009#gid=912447009"
+            },
+            {
+                id: 15,
+                name: "Мираторг Брянск",
+                ageMin: 18,
+                ageMax: 55,
+                allowedGenders: ["мужчина", "женщина"],
+                allowedNationalities: ["РФ", "РБ"],
+                allowsConviction: false,
+                link: "https://docs.google.com/spreadsheets/d/13FLpkCRuY8Bhdq8VzAsUMXlH-O6DcnwMlb3a1d82z44/edit?gid=1137221797#gid=1137221797"
+            },
+            {
+                id: 16,
+                name: "Мираторг Тула",
+                ageMin: 18,
+                ageMax: 55,
+                allowedGenders: ["мужчина", "женщина"],
+                allowedNationalities: ["РФ", "РБ"],
+                allowsConviction: true,
+                link: "https://docs.google.com/spreadsheets/d/13FLpkCRuY8Bhdq8VzAsUMXlH-O6DcnwMlb3a1d82z44/edit?gid=1209986820#gid=1209986820"
+            },
+            {
+                id: 17,
+                name: "БелГранКорм",
+                ageMin: 18,
+                ageMax: 50,
+                allowedGenders: ["мужчина", "женщина"],
+                allowedNationalities: ["РФ", "РБ", "СНГ"],
+                allowsConviction: true,
+                link: "https://docs.google.com/spreadsheets/d/13FLpkCRuY8Bhdq8VzAsUMXlH-O6DcnwMlb3a1d82z44/edit?gid=2042428287#gid=2042428287"
+            },
+            {
+                id: 18,
+                name: "Индейка Калуга",
+                ageMin: 18,
+                ageMax: 50,
+                allowedGenders: ["мужчина", "женщина"],
+                allowedNationalities: ["РФ", "РБ"],
+                allowsConviction: true,
+                link: "https://docs.google.com/spreadsheets/d/13FLpkCRuY8Bhdq8VzAsUMXlH-O6DcnwMlb3a1d82z44/edit?gid=478943669#gid=478943669"
+            },
+            {
+                id: 19,
+                name: "Спортмастер СПб",
+                ageMin: 18,
+                ageMax: 45,
+                allowedGenders: ["мужчина", "женщина"],
+                allowedNationalities: ["РФ", "РБ"],
+                allowsConviction: false,
+                link: "https://docs.google.com/spreadsheets/d/13FLpkCRuY8Bhdq8VzAsUMXlH-O6DcnwMlb3a1d82z44/edit?gid=1368572665#gid=1368572665"
+            },
+            {
+                id: 20,
+                name: "КуулКлевер",
+                ageMin: 18,
+                ageMax: 55,
+                allowedGenders: ["мужчина", "женщина"],
+                allowedNationalities: ["СНГ"],
+                allowsConviction: false,
+                link: "https://docs.google.com/spreadsheets/d/13FLpkCRuY8Bhdq8VzAsUMXlH-O6DcnwMlb3a1d82z44/edit?gid=1379171118#gid=1379171118"
+            },
+            {
+                id: 21,
+                name: "Яндекс Тарный",
+                ageMin: 18,
+                ageMax: 45,
+                allowedGenders: ["мужчина", "женщина"],
+                allowedNationalities: ["РФ"],
+                allowsConviction: false,
+                link: "https://docs.google.com/spreadsheets/d/13FLpkCRuY8Bhdq8VzAsUMXlH-O6DcnwMlb3a1d82z44/edit?gid=244932662#gid=244932662"
+            }
+        ];
+
+        // Получаем элементы DOM
+        const ageInput = document.getElementById('age');
+        const genderSelect = document.getElementById('gender');
+        const nationalitySelect = document.getElementById('nationality');
+        const convictionSelect = document.getElementById('hasConviction');
+        const resultsContainer = document.getElementById('results');
+        const resultsCount = document.getElementById('resultsCount');
+
+        // ФУНКЦИЯ ФИЛЬТРАЦИИ И ОТОБРАЖЕНИЯ
+        function filterAndDisplayObjects() {
+            // 1. Получаем текущие значения фильтров
+            const selectedAge = parseInt(ageInput.value);
+            const selectedGender = genderSelect.value;
+            const selectedNationality = nationalitySelect.value;
+            const selectedHasConviction = convictionSelect.value === 'true';
+
+            // 2. Фильтруем массив объектов
+            const filteredObjects = objects.filter(obj => {
+                // Проверка по возрасту
+                const ageMatch = selectedAge >= obj.ageMin && selectedAge <= obj.ageMax;
+
+                // Проверка по полу
+                const genderMatch = obj.allowedGenders.includes(selectedGender);
+
+                // Проверка по национальности
+                const nationalityMatch = obj.allowedNationalities.includes(selectedNationality);
+
+                // Проверка по судимости
+                let convictionMatch;
+                if (selectedHasConviction) {
+                    convictionMatch = obj.allowsConviction === true;
+                } else {
+                    convictionMatch = true;
+                }
+
+                return ageMatch && genderMatch && nationalityMatch && convictionMatch;
+            });
+
+            // 3. Отображаем результаты
+            displayResults(filteredObjects);
+        }
+
+        // ФУНКЦИЯ ОТОБРАЖЕНИЯ РЕЗУЛЬТАТОВ
+        function displayResults(objectsToDisplay) {
+            // Очищаем контейнер
+            resultsContainer.innerHTML = '';
+            
+            // Показываем количество найденных объектов
+            resultsCount.textContent = `Найдено объектов: ${objectsToDisplay.length}`;
+
+            if (objectsToDisplay.length === 0) {
+                resultsContainer.innerHTML = '<div class="no-results">❌ По заданным критериям объектов не найдено. Попробуйте изменить параметры фильтра.</div>';
+            } else {
+                // Создаем карточки для каждого подходящего объекта
+                objectsToDisplay.forEach(obj => {
+                    const card = document.createElement('div');
+                    card.className = 'object-card';
+
+                    card.innerHTML = `
+                        <h3><a href="${obj.link}" target="_blank">${obj.name}</a></h3>
+                        <p><strong>Возраст:</strong> ${obj.ageMin} - ${obj.ageMax} лет</p>
+                        <p><strong>Пол:</strong> ${obj.allowedGenders.join(', ')}</p>
+                        <p><strong>Гражданство:</strong> ${obj.allowedNationalities.join(', ')}</p>
+                        <p><strong>Судимость:</strong> ${obj.allowsConviction ? '✅ Принимают' : '❌ Не принимают'}</p>
+                        <div class="link">
+                            <a href="${obj.link}" target="_blank">📊 Открыть таблицу с вакансиями →</a>
+                        </div>
+                    `;
+                    resultsContainer.appendChild(card);
+                });
+            }
+        }
+
+        // ЗАПУСК ПРИ ИЗМЕНЕНИИ ФИЛЬТРОВ
+        ageInput.addEventListener('input', filterAndDisplayObjects);
+        genderSelect.addEventListener('change', filterAndDisplayObjects);
+        nationalitySelect.addEventListener('change', filterAndDisplayObjects);
+        convictionSelect.addEventListener('change', filterAndDisplayObjects);
+
+        // ЗАПУСК ПРИ ПЕРВОЙ ЗАГРУЗКЕ СТРАНИЦЫ
+        filterAndDisplayObjects();
+    </script>
+</body>
+</html>
