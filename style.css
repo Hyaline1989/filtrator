@@ -95,6 +95,7 @@
             box-shadow: 0 3px 15px rgba(0,0,0,0.1);
             border-left: 5px solid #3498db;
             transition: transform 0.2s, box-shadow 0.2s;
+            position: relative;
         }
         .object-card:hover {
             transform: translateY(-2px);
@@ -105,6 +106,7 @@
             color: #2c3e50;
             border-bottom: 2px solid #f8f9fa;
             padding-bottom: 10px;
+            margin-right: 80px;
         }
         .object-card h3 a {
             color: #2c3e50;
@@ -151,4 +153,249 @@
             margin-bottom: 15px;
             color: #7f8c8d;
             font-size: 0.9em;
+        }
+
+        /* СТИЛИ ДЛЯ ХЕДЕРА И МЕНЮ */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 0 10px;
+        }
+        .burger-menu {
+            display: none; /* По умолчанию скрыто для всех */
+            align-items: center;
+        }
+        .burger-icon {
+            display: flex;
+            flex-direction: column;
+            cursor: pointer;
+            padding: 10px;
+            margin-right: 15px;
+            transition: transform 0.3s;
+        }
+        .burger-icon span {
+            width: 25px;
+            height: 3px;
+            background: #2c3e50;
+            margin: 3px 0;
+            transition: 0.3s;
+            border-radius: 2px;
+        }
+        .burger-icon:hover span {
+            background: #3498db;
+        }
+        .burger-icon.active span:nth-child(1) {
+            transform: rotate(-45deg) translate(-5px, 6px);
+        }
+        .burger-icon.active span:nth-child(2) {
+            opacity: 0;
+        }
+        .burger-icon.active span:nth-child(3) {
+            transform: rotate(45deg) translate(-5px, -6px);
+        }
+        .menu-content {
+            position: fixed;
+            top: 0;
+            left: -350px;
+            width: 300px;
+            height: 100vh;
+            background: white;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+            padding: 0;
+            overflow-y: auto;
+            transition: left 0.3s ease;
+            z-index: 1000;
+        }
+        .menu-content.active {
+            left: 0;
+        }
+        .menu-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            border-bottom: 2px solid #3498db;
+            background: #f8f9fa;
+        }
+        .menu-header h3 {
+            margin: 0;
+            color: #2c3e50;
+        }
+        .close-menu {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #7f8c8d;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .close-menu:hover {
+            color: #e74c3c;
+            background: #e9ecef;
+            border-radius: 50%;
+        }
+        .menu-controls {
+            padding: 15px 20px;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            gap: 10px;
+        }
+        .menu-controls button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            flex: 1;
+        }
+        .menu-controls button:hover {
+            background: #2980b9;
+        }
+        .menu-items {
+            padding: 20px;
+        }
+        .menu-item {
+            margin-bottom: 15px;
+        }
+        .menu-checkbox {
+            display: flex;
+            align-items: flex-start;
+            cursor: pointer;
+            padding: 10px;
+            border-radius: 6px;
+            transition: background 0.3s;
+        }
+        .menu-checkbox:hover {
+            background: #f8f9fa;
+        }
+        .menu-checkbox input {
+            display: none;
+        }
+        .checkmark {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #bdc3c7;
+            border-radius: 4px;
+            margin-right: 12px;
+            margin-top: 2px;
+            position: relative;
+            transition: all 0.3s;
+        }
+        .menu-checkbox input:checked + .checkmark {
+            background: #3498db;
+            border-color: #3498db;
+        }
+        .menu-checkbox input:checked + .checkmark:after {
+            content: "";
+            position: absolute;
+            left: 6px;
+            top: 2px;
+            width: 5px;
+            height: 10px;
+            border: solid white;
+            border-width: 0 2px 2px 0;
+            transform: rotate(45deg);
+        }
+        .menu-object-info {
+            flex: 1;
+        }
+        .menu-details {
+            font-size: 0.8em;
+            color: #7f8c8d;
+            margin-top: 5px;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        .priority-toggle {
+            margin-top: 8px;
+            padding: 6px 10px;
+            border: 1px solid #bdc3c7;
+            border-radius: 15px;
+            background: white;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s;
+        }
+        .priority-toggle:hover {
+            background: #f8f9fa;
+        }
+        .priority-toggle.priority-active {
+            background: #ff6b6b;
+            color: white;
+            border-color: #ff6b6b;
+        }
+        .user-badge-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .admin-badge {
+            display: inline-block;
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        .user-badge {
+            display: inline-block;
+            background: linear-gradient(45deg, #3498db, #2980b9);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        .logout-btn {
+            background: #95a5a6;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.3s;
+        }
+        .logout-btn:hover {
+            background: #7f8c8d;
+        }
+
+        /* Стили для приоритетных карточек */
+        .object-card.priority-card {
+            border-left: 5px solid #ff6b6b;
+            background: linear-gradient(135deg, #fff, #fff5f5);
+        }
+        .priority-badge {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: #ff6b6b;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        /* Затемнение фона при открытом меню */
+        .menu-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 999;
+            display: none;
         }
