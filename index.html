@@ -174,7 +174,7 @@
             padding: 0 10px;
         }
         .burger-menu {
-            display: none; /* По умолчанию скрыто для всех */
+            display: none;
             align-items: center;
         }
         .burger-icon {
@@ -409,6 +409,13 @@
             z-index: 999;
             display: none;
         }
+        
+        .sync-status {
+            text-align: center;
+            margin: 10px 0;
+            font-size: 12px;
+            color: #7f8c8d;
+        }
     </style>
 </head>
 <body>
@@ -450,6 +457,10 @@
         </div>
 
         <h1>🎯 Подбор объекта для вахты</h1>
+        
+        <div class="sync-status" id="syncStatus">
+            🔄 Загрузка данных...
+        </div>
 
         <div class="filters">
             <div class="filter-group">
@@ -493,44 +504,397 @@
     <!-- Затемнение фона для меню -->
     <div class="menu-overlay" id="menuOverlay" onclick="toggleMenu()"></div>
 
+    <!-- Подключаем Supabase клиент -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+
     <script>
-        // ПАРОЛИ ДЛЯ РАЗНЫХ УРОВНЕЙ ДОСТУПА
+        // КОНФИГУРАЦИЯ SUPABASE
+        const SUPABASE_URL = 'https://gujvwqcwxnkeaaggvjqw.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd1anZ3cWN3eG5rZWFhZ2d2anF3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA2MjU1MzYsImV4cCI6MjA3NjIwMTUzNn0.c0pv6V5kKUS-sbsL8lgrPDcWIB-dpTbVC4V7W3o8m-4';
+        
+        // Инициализация Supabase
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // ПАРОЛИ
         const PASSWORDS = {
             "user": "complect2025",
             "admin": "bigboss"
         };
 
         // Настройки сессии
-        const SESSION_DURATION = 12 * 60 * 60 * 1000; // 12 часов в миллисекундах
+        const SESSION_DURATION = 12 * 60 * 60 * 1000;
         const SESSION_KEY = "sessionData";
 
-        // Текущий уровень доступа
+        // Переменные
         let currentAccessLevel = "";
         let isMenuOpen = false;
         let sessionTimer = null;
+        let objects = [];
 
-        // Ключ для localStorage
-        const OBJECTS_STORAGE_KEY = "objectsSettings";
+        // БАЗОВАЯ СТРУКТУРА ОБЪЕКТОВ
+        const objectsBase = [
+            {
+                id: 1,
+                name: "Сберлогистика",
+                ageMin: 18,
+                ageMax: 45,
+                allowedGenders: ["мужчина"],
+                allowedNationalities: ["РФ", "РБ"],
+                allowsConviction: false,
+                link: "https://docs.google.com/spreadsheets/d/13FLpkCRuY8Bhdq8VzAsUMXlH-O6DcnwMlb3a1d82z44/edit?gid=1671362639#gid=1671362639"
+            },
+            {
+                id: 2,
+                name: "СДТ",
+                ageMin: 18,
+                ageMax: 55,
+                allowedGenders: ["мужчина", "женщина"],
+                allowedNationalities: ["РФ"],
+                allowsConviction: true,
+                link: "https://docs.google.com/spreadsheets/d/13FLpkCRuY8Bhdq8VzAsUMXlH-O6DcnwMlb3a1d82z44/edit?gid=807193246#gid=807193246"
+            },
+            {
+                id: 3,
+                name: "Креветки Клин",
+                ageMin: 18,
+                ageMax: 50,
+                allowedGenders: ["мужчина", "женщина"],
+                allowedNationalities: ["РФ", "РБ", "СНГ"],
+                allowsConviction: true,
+                link: "https://docs.google.com/spreadsheets/d/13FLpkCRuY8Bhdq8VzAsUMXlH-O6DcnwMlb3a1d82z44/edit?gid=2035276078#gid=2035276078"
+            },
+            {
+                id: 4,
+                name: "Major",
+                ageMin: 18,
+                ageMax: 55,
+                allowedGenders: ["мужчина", "женщина"],
+                allowedNationalities: ["РФ", "РБ"],
+                allowsConviction: false,
+                link: "https://docs.google.com/spreadsheets/d/13FLpkCRuY8Bhdq8VzAsUMXlH-O6DcnwMlb3a1d82z44/edit?gid=1066301663#gid=1066301663"
+            },
+            {
+                id: 5,
+                name: "Спортмастер",
+                ageMin: 18,
+                ageMax: 50,
+                allowedGenders: ["мужчина", "женщина"],
+                allowedNationalities: ["РФ"],
+                allowsConviction: false,
+                link: "https://docs.google.com/spreadsheets/d/13FLpkCRuY8Bhdq8VzAsUMXlH-O6DcnwMlb3a1d82z44/edit?gid=2015665303#gid=2015665303"
+            },
+            {
+                id: 6,
+                name: "Метро",
+                ageMin: 18,
+                ageMax: 45,
+                allowedGenders: ["мужчина"],
+                allowedNationalities: ["РФ"],
+                allowsConviction: true,
+                link: "https://docs.google.com/spreadsheets/d/13FLpkCRuY8Bhdq8VzAsUMXlH-O6DcnwMlb3a1d82z44/edit?gid=2037581346#gid=2037581346"
+            },
+            {
+                id: 7,
+                name: "Клин Мясо",
+                ageMin: 18,
+                ageMax: 60,
+                allowedGenders: ["мужчина", "женщина"],
+                allowedNationalities: ["РФ", "РБ"],
+                allowsConviction: true,
+                link: "https://docs.google.com/spreadsheets/d/13FLpkCRuY8Bhdq8VzAsUMXlH-O6DcnwMlb3a1d82z44/edit?gid=484336549#gid=484336549"
+            },
+            {
+                id: 8,
+                name: "Цветы Раменское",
+                ageMin: 18,
+                ageMax: 50,
+                allowedGenders: ["мужчина", "женщина"],
+                allowedNationalities: ["РФ", "РБ"],
+                allowsConviction: true,
+                link: "https://docs.google.com/spreadsheets/d/13FLpkCRuY8Bhdq8VzAsUMXlH-O6DcnwMlb3a1d82z44/edit?gid=1489900442#gid=1489900442"
+            },
+            {
+                id: 9,
+                name: "Агама",
+                ageMin: 25,
+                ageMax: 40,
+                allowedGenders: ["мужчина", "женщина"],
+                allowedNationalities: ["РФ"],
+                allowsConviction: true,
+                link: "https://docs.google.com/spreadsheets/d/13FLpkCRuY8Bhdq8VzAsUMXlH-O6DcnwMlb3a1d82z44/edit?gid=371889370#gid=371889370"
+            },
+            {
+                id: 10,
+                name: "ФитнесШок",
+                ageMin: 18,
+                ageMax: 60,
+                allowedGenders: ["мужчина", "женщина"],
+                allowedNationalities: ["РФ", "РБ"],
+                allowsConviction: true,
+                link: "https://docs.google.com/spreadsheets/d/13FLpkCRuY8Bhdq8VzAsUMXlH-O6DcnwMlb3a1d82z44/edit?gid=1609895640#gid=1609895640"
+            },
+            {
+                id: 11,
+                name: "Тамбовский бекон",
+                ageMin: 18,
+                ageMax: 50,
+                allowedGenders: ["мужчина", "женщина"],
+                allowedNationalities: ["РФ"],
+                allowsConviction: true,
+                link: "https://docs.google.com/spreadsheets/d/13FLpkCRuY8Bhdq8VzAsUMXlH-O6DcnwMlb3a1d82z44/edit?gid=2134096102#gid=2134096102"
+            },
+            {
+                id: 12,
+                name: "Павловская курвочка",
+                ageMin: 18,
+                ageMax: 55,
+                allowedGenders: ["мужчина", "женщина"],
+                allowedNationalities: ["РФ", "РБ", "СНГ"],
+                allowsConviction: true,
+                link: "https://docs.google.com/spreadsheets/d/13FLpkCRuY8Bhdq8VzAsUMXlH-O6DcnwMlb3a1d82z44/edit?gid=459944799#gid=459944799"
+            },
+            {
+                id: 13,
+                name: "АртПак",
+                ageMin: 18,
+                ageMax: 50,
+                allowedGenders: ["мужчина", "женщина"],
+                allowedNationalities: ["РФ", "РБ"],
+                allowsConviction: true,
+                link: "https://docs.google.com/spreadsheets/d/13FLpkCRuY8Bhdq8VzAsUMXlH-O6DcnwMlb3a1d82z44/edit?gid=1786219261#gid=1786219261"
+            },
+            {
+                id: 14,
+                name: "Мяснов",
+                ageMin: 18,
+                ageMax: 55,
+                allowedGenders: ["мужчина", "женщина"],
+                allowedNationalities: ["РФ", "РБ"],
+                allowsConviction: true,
+                link: "https://docs.google.com/spreadsheets/d/13FLpkCRuY8Bhdq8VzAsUMXlH-O6DcnwMlb3a1d82z44/edit?gid=912447009#gid=912447009"
+            },
+            {
+                id: 15,
+                name: "Мираторг Брянск",
+                ageMin: 18,
+                ageMax: 55,
+                allowedGenders: ["мужчина", "женщина"],
+                allowedNationalities: ["РФ", "РБ"],
+                allowsConviction: false,
+                link: "https://docs.google.com/spreadsheets/d/13FLpkCRuY8Bhdq8VzAsUMXlH-O6DcnwMlb3a1d82z44/edit?gid=1137221797#gid=1137221797"
+            },
+            {
+                id: 16,
+                name: "Мираторг Тула",
+                ageMin: 18,
+                ageMax: 55,
+                allowedGenders: ["мужчина", "женщина"],
+                allowedNationalities: ["РФ", "РБ"],
+                allowsConviction: true,
+                link: "https://docs.google.com/spreadsheets/d/13FLpkCRuY8Bhdq8VzAsUMXlH-O6DcnwMlb3a1d82z44/edit?gid=1209986820#gid=1209986820"
+            },
+            {
+                id: 17,
+                name: "БелГранКорм",
+                ageMin: 18,
+                ageMax: 50,
+                allowedGenders: ["мужчина", "женщина"],
+                allowedNationalities: ["РФ", "РБ", "СНГ"],
+                allowsConviction: true,
+                link: "https://docs.google.com/spreadsheets/d/13FLpkCRuY8Bhdq8VzAsUMXlH-O6DcnwMlb3a1d82z44/edit?gid=2042428287#gid=2042428287"
+            },
+            {
+                id: 18,
+                name: "Индейка Калуга",
+                ageMin: 18,
+                ageMax: 50,
+                allowedGenders: ["мужчина", "женщина"],
+                allowedNationalities: ["РФ", "РБ"],
+                allowsConviction: true,
+                link: "https://docs.google.com/spreadsheets/d/13FLpkCRuY8Bhdq8VzAsUMXlH-O6DcnwMlb3a1d82z44/edit?gid=478943669#gid=478943669"
+            },
+            {
+                id: 19,
+                name: "Спортмастер СПб",
+                ageMin: 18,
+                ageMax: 45,
+                allowedGenders: ["мужчина", "женщина"],
+                allowedNationalities: ["РФ", "РБ"],
+                allowsConviction: false,
+                link: "https://docs.google.com/spreadsheets/d/13FLpkCRuY8Bhdq8VzAsUMXlH-O6DcnwMlb3a1d82z44/edit?gid=1368572665#gid=1368572665"
+            },
+            {
+                id: 20,
+                name: "КуулКлевер",
+                ageMin: 18,
+                ageMax: 55,
+                allowedGenders: ["мужчина", "женщина"],
+                allowedNationalities: ["СНГ"],
+                allowsConviction: false,
+                link: "https://docs.google.com/spreadsheets/d/13FLpkCRuY8Bhdq8VzAsUMXlH-O6DcnwMlb3a1d82z44/edit?gid=1379171118#gid=1379171118"
+            },
+            {
+                id: 21,
+                name: "Яндекс Тарный",
+                ageMin: 18,
+                ageMax: 45,
+                allowedGenders: ["мужчина", "женщина"],
+                allowedNationalities: ["РФ"],
+                allowsConviction: false,
+                link: "https://docs.google.com/spreadsheets/d/13FLpkCRuY8Bhdq8VzAsUMXlH-O6DcnwMlb3a1d82z44/edit?gid=244932662#gid=244932662"
+            }
+        ];
 
-        // Функция для получения состояния из localStorage
-        function getStoredSettings() {
-            const stored = localStorage.getItem(OBJECTS_STORAGE_KEY);
-            return stored ? JSON.parse(stored) : {};
+        // ФУНКЦИИ ДЛЯ РАБОТЫ С SUPABASE
+        async function loadSettingsFromServer() {
+            try {
+                updateSyncStatus('🔄 Загрузка данных...');
+                
+                const { data, error } = await supabase
+                    .from('objects_settings')
+                    .select('*');
+                
+                if (error) throw error;
+                
+                // Объединяем базовые данные с настройками из базы
+                objects = objectsBase.map(baseObj => {
+                    const serverSettings = data.find(s => s.id === baseObj.id);
+                    return {
+                        ...baseObj,
+                        visible: serverSettings ? serverSettings.visible : true,
+                        priority: serverSettings ? serverSettings.priority : false
+                    };
+                });
+                
+                updateSyncStatus('✅ Данные загружены');
+                return objects;
+            } catch (error) {
+                console.error('Ошибка загрузки настроек:', error);
+                updateSyncStatus('❌ Ошибка загрузки');
+                // Если ошибка, используем базовые настройки
+                objects = objectsBase.map(obj => ({ ...obj, visible: true, priority: false }));
+                return objects;
+            }
         }
 
-        // Функция для сохранения состояния в localStorage
-        function saveSettingsToStorage() {
-            const settingsState = {};
-            objects.forEach(obj => {
-                settingsState[obj.id] = {
-                    visible: obj.visible,
-                    priority: obj.priority
-                };
-            });
-            localStorage.setItem(OBJECTS_STORAGE_KEY, JSON.stringify(settingsState));
+        async function saveSettingsToServer(objectId, visible, priority) {
+            if (currentAccessLevel !== "admin") return;
+            
+            try {
+                updateSyncStatus('💾 Сохранение...');
+                
+                // Найдем имя объекта
+                const object = objectsBase.find(obj => obj.id === objectId);
+                const objectName = object ? object.name : `Объект ${objectId}`;
+                
+                const { error } = await supabase
+                    .from('objects_settings')
+                    .upsert({
+                        id: objectId,
+                        name: objectName, // Добавляем имя объекта
+                        visible: visible,
+                        priority: priority,
+                        updated_at: new Date().toISOString()
+                    });
+                
+                if (error) throw error;
+                
+                updateSyncStatus('✅ Изменения сохранены');
+                console.log('Настройки сохранены на сервер');
+            } catch (error) {
+                console.error('Ошибка сохранения:', error);
+                updateSyncStatus('❌ Ошибка сохранения');
+                alert('Ошибка сохранения настроек: ' + error.message);
+            }
         }
 
-        // Функции для управления сессией
+        async function checkAllObjectsOnServer() {
+            if (currentAccessLevel !== "admin") return;
+            
+            try {
+                updateSyncStatus('💾 Сохранение всех...');
+                
+                // Обновляем все объекты в базе
+                const updates = objects.map(obj => {
+                    const baseObj = objectsBase.find(b => b.id === obj.id);
+                    return {
+                        id: obj.id,
+                        name: baseObj ? baseObj.name : `Объект ${obj.id}`,
+                        visible: true,
+                        priority: obj.priority,
+                        updated_at: new Date().toISOString()
+                    };
+                });
+                
+                const { error } = await supabase
+                    .from('objects_settings')
+                    .upsert(updates);
+                
+                if (error) throw error;
+                
+                // Обновляем локальные данные
+                objects.forEach(obj => obj.visible = true);
+                fillMenuWithObjects();
+                filterAndDisplayObjects();
+                
+                updateSyncStatus('✅ Все объекты включены');
+            } catch (error) {
+                console.error('Ошибка:', error);
+                updateSyncStatus('❌ Ошибка сохранения');
+                alert('Ошибка сохранения: ' + error.message);
+            }
+        }
+
+        async function uncheckAllObjectsOnServer() {
+            if (currentAccessLevel !== "admin") return;
+            
+            try {
+                updateSyncStatus('💾 Сохранение всех...');
+                
+                const updates = objects.map(obj => {
+                    const baseObj = objectsBase.find(b => b.id === obj.id);
+                    return {
+                        id: obj.id,
+                        name: baseObj ? baseObj.name : `Объект ${obj.id}`,
+                        visible: false,
+                        priority: obj.priority,
+                        updated_at: new Date().toISOString()
+                    };
+                });
+                
+                const { error } = await supabase
+                    .from('objects_settings')
+                    .upsert(updates);
+                
+                if (error) throw error;
+                
+                objects.forEach(obj => obj.visible = false);
+                fillMenuWithObjects();
+                filterAndDisplayObjects();
+                
+                updateSyncStatus('✅ Все объекты скрыты');
+            } catch (error) {
+                console.error('Ошибка:', error);
+                updateSyncStatus('❌ Ошибка сохранения');
+                alert('Ошибка сохранения: ' + error.message);
+            }
+        }
+
+        function updateSyncStatus(message) {
+            const statusElement = document.getElementById('syncStatus');
+            if (statusElement) {
+                statusElement.textContent = message;
+                
+                // Автоматически скрываем успешные сообщения через 3 секунды
+                if (message.includes('✅') || message.includes('❌')) {
+                    setTimeout(() => {
+                        statusElement.textContent = '';
+                    }, 3000);
+                }
+            }
+        }
+
+        // ФУНКЦИИ СЕССИИ
         function startSession(accessLevel) {
             const sessionData = {
                 accessLevel: accessLevel,
@@ -540,7 +904,6 @@
             localStorage.setItem(SESSION_KEY, JSON.stringify(sessionData));
             currentAccessLevel = accessLevel;
             
-            // Запускаем таймер для автоматического выхода
             sessionTimer = setTimeout(() => {
                 alert("Время сессии истекло. Пожалуйста, войдите снова.");
                 logout();
@@ -559,11 +922,9 @@
                 return false;
             }
 
-            // Обновляем время истечения сессии
             session.expires = now + SESSION_DURATION;
             localStorage.setItem(SESSION_KEY, JSON.stringify(session));
             
-            // Перезапускаем таймер
             if (sessionTimer) clearTimeout(sessionTimer);
             sessionTimer = setTimeout(() => {
                 alert("Время сессии истекло. Пожалуйста, войдите снова.");
@@ -582,279 +943,11 @@
             localStorage.removeItem(SESSION_KEY);
             currentAccessLevel = "";
             
-            // Показываем форму входа, скрываем контент
             document.getElementById('loginContainer').style.display = 'block';
             document.getElementById('content').style.display = 'none';
-            document.getElementById('burgerMenu').style.display = 'none'; // Скрываем бургер-меню
+            document.getElementById('burgerMenu').style.display = 'none';
             document.getElementById('password').value = '';
             document.getElementById('password').focus();
-        }
-
-        // БАЗА ДАННЫХ ОБЪЕКТОВ (полная версия с 21 объектом)
-        const objects = [
-            {
-                id: 1,
-                name: "Сберлогистика",
-                ageMin: 18,
-                ageMax: 45,
-                allowedGenders: ["мужчина"],
-                allowedNationalities: ["РФ", "РБ"],
-                allowsConviction: false,
-                link: "https://docs.google.com/spreadsheets/d/13FLpkCRuY8Bhdq8VzAsUMXlH-O6DcnwMlb3a1d82z44/edit?gid=1671362639#gid=1671362639",
-                visible: true,
-                priority: false
-            },
-            {
-                id: 2,
-                name: "СДТ",
-                ageMin: 18,
-                ageMax: 55,
-                allowedGenders: ["мужчина", "женщина"],
-                allowedNationalities: ["РФ"],
-                allowsConviction: true,
-                link: "https://docs.google.com/spreadsheets/d/13FLpkCRuY8Bhdq8VzAsUMXlH-O6DcnwMlb3a1d82z44/edit?gid=807193246#gid=807193246",
-                visible: true,
-                priority: false
-            },
-            {
-                id: 3,
-                name: "Креветки Клин",
-                ageMin: 18,
-                ageMax: 50,
-                allowedGenders: ["мужчина", "женщина"],
-                allowedNationalities: ["РФ", "РБ", "СНГ"],
-                allowsConviction: true,
-                link: "https://docs.google.com/spreadsheets/d/13FLpkCRuY8Bhdq8VzAsUMXlH-O6DcnwMlb3a1d82z44/edit?gid=2035276078#gid=2035276078",
-                visible: true,
-                priority: false
-            },
-            {
-                id: 4,
-                name: "Major",
-                ageMin: 18,
-                ageMax: 55,
-                allowedGenders: ["мужчина", "женщина"],
-                allowedNationalities: ["РФ", "РБ"],
-                allowsConviction: false,
-                link: "https://docs.google.com/spreadsheets/d/13FLpkCRuY8Bhdq8VzAsUMXlH-O6DcnwMlb3a1d82z44/edit?gid=1066301663#gid=1066301663",
-                visible: true,
-                priority: false
-            },
-            {
-                id: 5,
-                name: "Спортмастер",
-                ageMin: 18,
-                ageMax: 50,
-                allowedGenders: ["мужчина", "женщина"],
-                allowedNationalities: ["РФ"],
-                allowsConviction: false,
-                link: "https://docs.google.com/spreadsheets/d/13FLpkCRuY8Bhdq8VzAsUMXlH-O6DcnwMlb3a1d82z44/edit?gid=2015665303#gid=2015665303",
-                visible: true,
-                priority: false
-            },
-            {
-                id: 6,
-                name: "Метро",
-                ageMin: 18,
-                ageMax: 45,
-                allowedGenders: ["мужчина"],
-                allowedNationalities: ["РФ"],
-                allowsConviction: true,
-                link: "https://docs.google.com/spreadsheets/d/13FLpkCRuY8Bhdq8VzAsUMXlH-O6DcnwMlb3a1d82z44/edit?gid=2037581346#gid=2037581346",
-                visible: true,
-                priority: false
-            },
-            {
-                id: 7,
-                name: "Клин Мясо",
-                ageMin: 18,
-                ageMax: 60,
-                allowedGenders: ["мужчина", "женщина"],
-                allowedNationalities: ["РФ", "РБ"],
-                allowsConviction: true,
-                link: "https://docs.google.com/spreadsheets/d/13FLpkCRuY8Bhdq8VzAsUMXlH-O6DcnwMlb3a1d82z44/edit?gid=484336549#gid=484336549",
-                visible: true,
-                priority: false
-            },
-            {
-                id: 8,
-                name: "Цветы Раменское",
-                ageMin: 18,
-                ageMax: 50,
-                allowedGenders: ["мужчина", "женщина"],
-                allowedNationalities: ["РФ", "РБ"],
-                allowsConviction: true,
-                link: "https://docs.google.com/spreadsheets/d/13FLpkCRuY8Bhdq8VzAsUMXlH-O6DcnwMlb3a1d82z44/edit?gid=1489900442#gid=1489900442",
-                visible: true,
-                priority: false
-            },
-            {
-                id: 9,
-                name: "Агама",
-                ageMin: 25,
-                ageMax: 40,
-                allowedGenders: ["мужчина", "женщина"],
-                allowedNationalities: ["РФ"],
-                allowsConviction: true,
-                link: "https://docs.google.com/spreadsheets/d/13FLpkCRuY8Bhdq8VzAsUMXlH-O6DcnwMlb3a1d82z44/edit?gid=371889370#gid=371889370",
-                visible: true,
-                priority: false
-            },
-            {
-                id: 10,
-                name: "ФитнесШок",
-                ageMin: 18,
-                ageMax: 60,
-                allowedGenders: ["мужчина", "женщина"],
-                allowedNationalities: ["РФ", "РБ"],
-                allowsConviction: true,
-                link: "https://docs.google.com/spreadsheets/d/13FLpkCRuY8Bhdq8VzAsUMXlH-O6DcnwMlb3a1d82z44/edit?gid=1609895640#gid=1609895640",
-                visible: true,
-                priority: false
-            },
-            {
-                id: 11,
-                name: "Тамбовский бекон",
-                ageMin: 18,
-                ageMax: 50,
-                allowedGenders: ["мужчина", "женщина"],
-                allowedNationalities: ["РФ"],
-                allowsConviction: true,
-                link: "https://docs.google.com/spreadsheets/d/13FLpkCRuY8Bhdq8VzAsUMXlH-O6DcnwMlb3a1d82z44/edit?gid=2134096102#gid=2134096102",
-                visible: true,
-                priority: false
-            },
-            {
-                id: 12,
-                name: "Павловская курвочка",
-                ageMin: 18,
-                ageMax: 55,
-                allowedGenders: ["мужчина", "женщина"],
-                allowedNationalities: ["РФ", "РБ", "СНГ"],
-                allowsConviction: true,
-                link: "https://docs.google.com/spreadsheets/d/13FLpkCRuY8Bhdq8VzAsUMXlH-O6DcnwMlb3a1d82z44/edit?gid=459944799#gid=459944799",
-                visible: true,
-                priority: false
-            },
-            {
-                id: 13,
-                name: "АртПак",
-                ageMin: 18,
-                ageMax: 50,
-                allowedGenders: ["мужчина", "женщина"],
-                allowedNationalities: ["РФ", "РБ"],
-                allowsConviction: true,
-                link: "https://docs.google.com/spreadsheets/d/13FLpkCRuY8Bhdq8VzAsUMXlH-O6DcnwMlb3a1d82z44/edit?gid=1786219261#gid=1786219261",
-                visible: true,
-                priority: false
-            },
-            {
-                id: 14,
-                name: "Мяснов",
-                ageMin: 18,
-                ageMax: 55,
-                allowedGenders: ["мужчина", "женщина"],
-                allowedNationalities: ["РФ", "РБ"],
-                allowsConviction: true,
-                link: "https://docs.google.com/spreadsheets/d/13FLpkCRuY8Bhdq8VzAsUMXlH-O6DcnwMlb3a1d82z44/edit?gid=912447009#gid=912447009",
-                visible: true,
-                priority: false
-            },
-            {
-                id: 15,
-                name: "Мираторг Брянск",
-                ageMin: 18,
-                ageMax: 55,
-                allowedGenders: ["мужчина", "женщина"],
-                allowedNationalities: ["РФ", "РБ"],
-                allowsConviction: false,
-                link: "https://docs.google.com/spreadsheets/d/13FLpkCRuY8Bhdq8VzAsUMXlH-O6DcnwMlb3a1d82z44/edit?gid=1137221797#gid=1137221797",
-                visible: true,
-                priority: false
-            },
-            {
-                id: 16,
-                name: "Мираторг Тула",
-                ageMin: 18,
-                ageMax: 55,
-                allowedGenders: ["мужчина", "женщина"],
-                allowedNationalities: ["РФ", "РБ"],
-                allowsConviction: true,
-                link: "https://docs.google.com/spreadsheets/d/13FLpkCRuY8Bhdq8VzAsUMXlH-O6DcnwMlb3a1d82z44/edit?gid=1209986820#gid=1209986820",
-                visible: true,
-                priority: false
-            },
-            {
-                id: 17,
-                name: "БелГранКорм",
-                ageMin: 18,
-                ageMax: 50,
-                allowedGenders: ["мужчина", "женщина"],
-                allowedNationalities: ["РФ", "РБ", "СНГ"],
-                allowsConviction: true,
-                link: "https://docs.google.com/spreadsheets/d/13FLpkCRuY8Bhdq8VzAsUMXlH-O6DcnwMlb3a1d82z44/edit?gid=2042428287#gid=2042428287",
-                visible: true,
-                priority: false
-            },
-            {
-                id: 18,
-                name: "Индейка Калуга",
-                ageMin: 18,
-                ageMax: 50,
-                allowedGenders: ["мужчина", "женщина"],
-                allowedNationalities: ["РФ", "РБ"],
-                allowsConviction: true,
-                link: "https://docs.google.com/spreadsheets/d/13FLpkCRuY8Bhdq8VzAsUMXlH-O6DcnwMlb3a1d82z44/edit?gid=478943669#gid=478943669",
-                visible: true,
-                priority: false
-            },
-            {
-                id: 19,
-                name: "Спортмастер СПб",
-                ageMin: 18,
-                ageMax: 45,
-                allowedGenders: ["мужчина", "женщина"],
-                allowedNationalities: ["РФ", "РБ"],
-                allowsConviction: false,
-                link: "https://docs.google.com/spreadsheets/d/13FLpkCRuY8Bhdq8VzAsUMXlH-O6DcnwMlb3a1d82z44/edit?gid=1368572665#gid=1368572665",
-                visible: true,
-                priority: false
-            },
-            {
-                id: 20,
-                name: "КуулКлевер",
-                ageMin: 18,
-                ageMax: 55,
-                allowedGenders: ["мужчина", "женщина"],
-                allowedNationalities: ["СНГ"],
-                allowsConviction: false,
-                link: "https://docs.google.com/spreadsheets/d/13FLpkCRuY8Bhdq8VzAsUMXlH-O6DcnwMlb3a1d82z44/edit?gid=1379171118#gid=1379171118",
-                visible: true,
-                priority: false
-            },
-            {
-                id: 21,
-                name: "Яндекс Тарный",
-                ageMin: 18,
-                ageMax: 45,
-                allowedGenders: ["мужчина", "женщина"],
-                allowedNationalities: ["РФ"],
-                allowsConviction: false,
-                link: "https://docs.google.com/spreadsheets/d/13FLpkCRuY8Bhdq8VzAsUMXlH-O6DcnwMlb3a1d82z44/edit?gid=244932662#gid=244932662",
-                visible: true,
-                priority: false
-            }
-        ];
-
-        // Загружаем сохраненные настройки при загрузке страницы
-        function loadStoredSettings() {
-            const storedSettings = getStoredSettings();
-            objects.forEach(obj => {
-                if (storedSettings[obj.id]) {
-                    obj.visible = storedSettings[obj.id].visible;
-                    obj.priority = storedSettings[obj.id].priority;
-                }
-            });
         }
 
         // ФУНКЦИИ ДЛЯ РАБОТЫ С ПАРОЛЕМ
@@ -864,16 +957,16 @@
             }
         }
 
-        function checkPassword() {
+        async function checkPassword() {
             const password = document.getElementById('password').value;
             const errorMessage = document.getElementById('errorMessage');
             
             if (password === PASSWORDS.user) {
                 startSession("user");
-                showContent();
+                await showContent();
             } else if (password === PASSWORDS.admin) {
                 startSession("admin");
-                showContent();
+                await showContent();
             } else {
                 errorMessage.style.display = 'block';
                 document.getElementById('password').value = '';
@@ -881,12 +974,15 @@
             }
         }
 
-        function showContent() {
+        async function showContent() {
             document.getElementById('loginContainer').style.display = 'none';
             document.getElementById('content').style.display = 'block';
             
             const userInfo = document.getElementById('userInfo');
             const burgerMenu = document.getElementById('burgerMenu');
+            
+            // Загружаем настройки с сервера
+            await loadSettingsFromServer();
             
             if (currentAccessLevel === "admin") {
                 userInfo.innerHTML = `
@@ -895,7 +991,7 @@
                         <button class="logout-btn" onclick="logout()">🚪 Выйти</button>
                     </div>
                 `;
-                burgerMenu.style.display = 'flex'; // Показываем бургер-меню только для админа
+                burgerMenu.style.display = 'flex';
                 fillMenuWithObjects();
             } else {
                 userInfo.innerHTML = `
@@ -904,7 +1000,7 @@
                         <button class="logout-btn" onclick="logout()">🚪 Выйти</button>
                     </div>
                 `;
-                burgerMenu.style.display = 'none'; // Скрываем бургер-меню для пользователя
+                burgerMenu.style.display = 'none';
             }
             
             filterAndDisplayObjects();
@@ -959,41 +1055,45 @@
             });
         }
 
-        function toggleObjectVisibility(objectId, isVisible) {
+        async function toggleObjectVisibility(objectId, isVisible) {
             const object = objects.find(obj => obj.id === objectId);
             if (object) {
                 object.visible = isVisible;
-                saveSettingsToStorage();
+                if (currentAccessLevel === "admin") {
+                    await saveSettingsToServer(objectId, isVisible, object.priority);
+                }
                 filterAndDisplayObjects();
             }
         }
 
-        function togglePriority(objectId) {
+        async function togglePriority(objectId) {
             const object = objects.find(obj => obj.id === objectId);
             if (object) {
                 object.priority = !object.priority;
-                saveSettingsToStorage();
+                if (currentAccessLevel === "admin") {
+                    await saveSettingsToServer(objectId, object.visible, object.priority);
+                }
                 fillMenuWithObjects();
                 filterAndDisplayObjects();
             }
         }
 
         function checkAllObjects() {
-            objects.forEach(obj => {
-                obj.visible = true;
-            });
-            saveSettingsToStorage();
-            fillMenuWithObjects();
-            filterAndDisplayObjects();
+            if (currentAccessLevel === "admin") {
+                checkAllObjectsOnServer();
+            } else {
+                objects.forEach(obj => obj.visible = true);
+                filterAndDisplayObjects();
+            }
         }
 
         function uncheckAllObjects() {
-            objects.forEach(obj => {
-                obj.visible = false;
-            });
-            saveSettingsToStorage();
-            fillMenuWithObjects();
-            filterAndDisplayObjects();
+            if (currentAccessLevel === "admin") {
+                uncheckAllObjectsOnServer();
+            } else {
+                objects.forEach(obj => obj.visible = false);
+                filterAndDisplayObjects();
+            }
         }
 
         // ФУНКЦИИ ФИЛЬТРАЦИИ
@@ -1032,7 +1132,6 @@
         function displayResults(objectsToDisplay, resultsContainer, resultsCount) {
             resultsContainer.innerHTML = '';
             
-            // Сортируем: приоритетные объекты first
             const sortedObjects = objectsToDisplay.sort((a, b) => {
                 if (a.priority && !b.priority) return -1;
                 if (!a.priority && b.priority) return 1;
@@ -1066,10 +1165,8 @@
             }
         }
 
-        // Назначаем обработчики событий после загрузки контента
+        // Назначаем обработчики событий
         document.addEventListener('DOMContentLoaded', function() {
-            loadStoredSettings();
-            
             // Проверяем активную сессию при загрузке страницы
             if (checkSession()) {
                 showContent();
