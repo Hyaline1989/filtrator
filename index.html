@@ -923,7 +923,7 @@
                 clearInterval(updateInterval);
             }
             
-            // Запускаем автообновление каждые 30 секунд для пользователей
+            // Запускаем автообновление каждые 60 секунд для пользователей
             if (currentAccessLevel === "user") {
                 updateInterval = setInterval(async () => {
                     console.log('Автообновление данных...');
@@ -1050,7 +1050,7 @@
             if (currentAccessLevel === "admin") {
                 userInfo.innerHTML = `
                     <div class="user-badge-container">
-                        <div class="admin-badge">👑 Администратор</div>
+                        <div class="admin-badge">🧙‍♀️ Администратор</div>
                         <button class="logout-btn" onclick="logout()">🚪 Выйти</button>
                     </div>
                 `;
@@ -1059,7 +1059,7 @@
             } else {
                 userInfo.innerHTML = `
                     <div class="user-badge-container">
-                        <div class="user-badge">👤 Пользователь</div>
+                        <div class="user-badge">🎃 Пользователь</div>
                         <button class="logout-btn" onclick="logout()">🚪 Выйти</button>
                     </div>
                 `;
