@@ -765,7 +765,6 @@
         
         <div class="sync-controls">
             <button onclick="manualSync()" class="sync-btn"><i class="fas fa-sync-alt"></i> Обновить данные</button>
-            <button onclick="debugSheetData()" class="sync-btn"><i class="fas fa-bug"></i> Отладка таблицы</button>
             <div class="sync-status" id="syncStatus"></div>
             <button class="debug-toggle" onclick="toggleDebug()">Отладка</button>
         </div>
@@ -1257,36 +1256,6 @@ async function loadVacancyData() {
         return vacancyData;
     }
 }
-
-        async function debugSheetData() {
-            try {
-                const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${SHEET_NAME}&range=${SHEET_RANGE}`;
-                
-                let response;
-                try {
-                    response = await fetch(url);
-                    if (!response.ok) throw new Error('Direct fetch failed');
-                } catch (err) {
-                    response = await fetch(`https://corsproxy.io/?${encodeURIComponent(url)}`);
-                }
-                
-                const text = await response.text();
-                const json = JSON.parse(text.substring(47).slice(0, -2));
-                
-                console.log('DEBUG - Все данные из таблицы:');
-                json.table.rows.forEach((row, index) => {
-                    if (row.c && row.c.length > 0) {
-                        const rowData = row.c.map(cell => cell ? cell.v : '');
-                        console.log(`Строка ${index + 1}:`, rowData);
-                    }
-                });
-                
-                alert('Данные для отладки выведены в консоль (F12)');
-            } catch (err) {
-                console.error('Ошибка отладки:', err);
-                alert('Ошибка загрузки данных для отладки');
-            }
-        }
 
         function getVacancyStats(objectName) {
             if (vacancyData[objectName]) {
