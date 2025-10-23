@@ -1,4 +1,4 @@
-// ФУНКЦИИ ФИЛЬТРАЦИИ
+// ФУНКЦИИ ФИЛЬТРАЦИИ С УЧЕТОМ АКТУАЛЬНЫХ ВАКАНСИЙ
 function filterAndDisplayObjects() {
     const ageInput = document.getElementById('age');
     const genderSelect = document.getElementById('gender');
@@ -15,6 +15,7 @@ function filterAndDisplayObjects() {
     const filteredObjects = objects.filter(obj => {
         if (!obj.visible) return false;
         
+        // Базовые критерии фильтрации
         const ageMatch = selectedAge >= obj.ageMin && selectedAge <= obj.ageMax;
         const genderMatch = obj.allowedGenders.includes(selectedGender);
         const nationalityMatch = obj.allowedNationalities.includes(selectedNationality);
@@ -25,7 +26,23 @@ function filterAndDisplayObjects() {
             convictionMatch = true;
         }
 
-        return ageMatch && genderMatch && nationalityMatch && convictionMatch;
+        // Проверяем базовые критерии
+        if (!ageMatch || !genderMatch || !nationalityMatch || !convictionMatch) {
+            return false;
+        }
+
+        // ДОПОЛНИТЕЛЬНАЯ ПРОВЕРКА: есть ли актуальные вакансии для выбранного пола
+        const vacancyStats = getVacancyStats(obj.name);
+        
+        if (selectedGender === 'мужчина' && vacancyStats.men === 0) {
+            return false; // Нет вакансий для мужчин
+        }
+        
+        if (selectedGender === 'женщина' && vacancyStats.women === 0) {
+            return false; // Нет вакансий для женщин
+        }
+
+        return true;
     });
 
     displayResults(filteredObjects, resultsContainer, resultsCount);
@@ -46,10 +63,43 @@ function displayResults(objectsToDisplay, resultsContainer, resultsCount) {
     const priorityCount = sortedObjects.filter(obj => obj.priority).length;
     const totalCount = sortedObjects.length;
     
-    resultsCount.textContent = `Найдено объектов: ${totalCount} (${priorityCount} в приоритете)`;
+    // Добавляем информацию о фильтрации по вакансиям
+    const selectedGender = document.getElementById('gender').value;
+    let vacancyFilterInfo = '';
+    if (selectedGender === 'мужчина') {
+        vacancyFilterInfo = ' (показаны только объекты с вакансиями для мужчин)';
+    } else if (selectedGender === 'женщина') {
+        vacancyFilterInfo = ' (показаны только объекты с вакансиями для женщин)';
+    }
+    
+    resultsCount.textContent = `Найдено объектов: ${totalCount} (${priorityCount} в приоритете)${vacancyFilterInfo}`;
 
     if (sortedObjects.length === 0) {
-        resultsContainer.innerHTML = '<div class="no-results">❌ По заданным критериям объектов не найдено. Попробуйте изменить параметры фильтра.</div>';
+        const selectedGender = document.getElementById('gender').value;
+        let noResultsMessage = '❌ По заданным критериям объектов не найдено. Попробуйте изменить параметры фильтра.';
+        
+        // Специальное сообщение если нет вакансий для выбранного пола
+        if (selectedGender === 'женщина') {
+            const objectsWithWomen = objects.filter(obj => 
+                obj.visible && 
+                obj.allowedGenders.includes('женщина') &&
+                !objectsToDisplay.includes(obj)
+            );
+            if (objectsWithWomen.length > 0) {
+                noResultsMessage = '❌ На данных объектах сейчас нет вакансий для женщин. Попробуйте выбрать другой пол или проверьте позже.';
+            }
+        } else if (selectedGender === 'мужчина') {
+            const objectsWithMen = objects.filter(obj => 
+                obj.visible && 
+                obj.allowedGenders.includes('мужчина') &&
+                !objectsToDisplay.includes(obj)
+            );
+            if (objectsWithMen.length > 0) {
+                noResultsMessage = '❌ На данных объектах сейчас нет вакансий для мужчин. Попробуйте выбрать другой пол или проверьте позже.';
+            }
+        }
+        
+        resultsContainer.innerHTML = `<div class="no-results">${noResultsMessage}</div>`;
     } else {
         sortedObjects.forEach((obj, index) => {
             const vacancyStats = getVacancyStats(obj.name);
