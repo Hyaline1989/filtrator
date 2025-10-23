@@ -103,7 +103,7 @@ const objectsBase = [
         id: 9,
         name: "Агама",
         ageMin: 25,
-        ageMax: 40,
+        ageMax: 45,
         allowedGenders: ["мужчина", "женщина"],
         allowedNationalities: ["РФ"],
         allowsConviction: true,
