@@ -107,6 +107,15 @@
             border-left: 5px solid #3498db;
             transition: transform 0.2s, box-shadow 0.2s;
             position: relative;
+            cursor: grab;
+        }
+        .object-card:active {
+            cursor: grabbing;
+        }
+        .object-card.dragging {
+            opacity: 0.7;
+            transform: rotate(5deg);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
         }
         .object-card:hover {
             transform: translateY(-2px);
@@ -118,6 +127,7 @@
             border-bottom: 2px solid #f8f9fa;
             padding-bottom: 10px;
             margin-right: 80px;
+            min-height: 50px;
         }
         .object-card h3 a {
             color: #2c3e50;
@@ -257,6 +267,7 @@
             border-bottom: 1px solid #e9ecef;
             display: flex;
             gap: 10px;
+            flex-wrap: wrap;
         }
         .menu-controls button {
             background: #3498db;
@@ -267,6 +278,7 @@
             cursor: pointer;
             font-size: 12px;
             flex: 1;
+            min-width: 120px;
         }
         .menu-controls button:hover {
             background: #2980b9;
@@ -276,17 +288,29 @@
         }
         .menu-item {
             margin-bottom: 15px;
+            padding: 10px;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            background: #f8f9fa;
+            cursor: grab;
+            transition: all 0.3s;
+        }
+        .menu-item:active {
+            cursor: grabbing;
+        }
+        .menu-item.dragging {
+            opacity: 0.7;
+            transform: rotate(5deg);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        .menu-item:hover {
+            border-color: #3498db;
+            background: #e3f2fd;
         }
         .menu-checkbox {
             display: flex;
             align-items: flex-start;
             cursor: pointer;
-            padding: 10px;
-            border-radius: 6px;
-            transition: background 0.3s;
-        }
-        .menu-checkbox:hover {
-            background: #f8f9fa;
         }
         .menu-checkbox input {
             display: none;
@@ -557,6 +581,143 @@
             50% { opacity: 0.5; }
             100% { opacity: 1; }
         }
+
+        /* Стили для сортировки */
+        .sortable-ghost {
+            opacity: 0.4;
+            background: #c8ebfb;
+        }
+        
+        .drag-handle {
+            cursor: grab;
+            margin-right: 10px;
+            color: #7f8c8d;
+            font-size: 16px;
+        }
+        
+        .drag-handle:active {
+            cursor: grabbing;
+        }
+        
+        .order-number {
+            display: inline-block;
+            width: 25px;
+            height: 25px;
+            background: #3498db;
+            color: white;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 25px;
+            font-size: 12px;
+            margin-right: 10px;
+        }
+        
+        .global-order-notice {
+            background: #e3f2fd;
+            border: 1px solid #3498db;
+            border-radius: 5px;
+            padding: 8px 12px;
+            margin: 10px 0;
+            font-size: 12px;
+            color: #2c3e50;
+            text-align: center;
+        }
+
+        /* Новые стили для перетаскивания в основном интерфейсе */
+        .drag-handle-main {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            cursor: grab;
+            color: #7f8c8d;
+            font-size: 16px;
+            padding: 5px;
+            border-radius: 4px;
+            transition: background 0.3s;
+        }
+        .drag-handle-main:hover {
+            background: #f8f9fa;
+            color: #3498db;
+        }
+        .drag-handle-main:active {
+            cursor: grabbing;
+        }
+        
+        .order-badge {
+            display: inline-block;
+            width: 25px;
+            height: 25px;
+            background: #3498db;
+            color: white;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 25px;
+            font-size: 12px;
+            margin-right: 10px;
+            font-weight: bold;
+        }
+        
+        .admin-controls {
+            text-align: center;
+            margin: 15px 0;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border: 2px dashed #3498db;
+        }
+        
+        .admin-controls h3 {
+            margin: 0 0 10px 0;
+            color: #2c3e50;
+        }
+        
+        .admin-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .admin-btn {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.3s;
+        }
+        
+        .admin-btn:hover {
+            background: #2980b9;
+        }
+        
+        .admin-btn.save {
+            background: #27ae60;
+        }
+        
+        .admin-btn.save:hover {
+            background: #219653;
+        }
+        
+        .admin-btn.reset {
+            background: #e74c3c;
+        }
+        
+        .admin-btn.reset:hover {
+            background: #c0392b;
+        }
+        
+        .unsaved-changes .admin-btn.save {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
     </style>
 </head>
 <body>
@@ -583,6 +744,9 @@
                         <h3>📋 Управление объектами</h3>
                         <button class="close-menu" onclick="toggleMenu()">×</button>
                     </div>
+                    <div class="global-order-notice">
+                        ⚡ Порядок объектов меняется для всех пользователей
+                    </div>
                     <div class="menu-controls">
                         <button onclick="checkAllObjects()">Выбрать все</button>
                         <button onclick="uncheckAllObjects()">Снять все</button>
@@ -603,6 +767,16 @@
             <button onclick="manualSync()" class="sync-btn"><i class="fas fa-sync-alt"></i> Обновить данные</button>
             <div class="sync-status" id="syncStatus"></div>
             <button class="debug-toggle" onclick="toggleDebug()">Отладка</button>
+        </div>
+
+        <!-- БЛОК УПРАВЛЕНИЯ ДЛЯ АДМИНИСТРАТОРА -->
+        <div class="admin-controls" id="adminControls" style="display: none;">
+            <h3>🛠️ Управление порядком объектов</h3>
+            <p>Перетаскивайте карточки для изменения порядка (держите за правый верхний угол)</p>
+            <div class="admin-buttons">
+                <button class="admin-btn save" onclick="saveGlobalOrder()" id="saveOrderBtn">💾 Сохранить порядок</button>
+                <button class="admin-btn reset" onclick="resetGlobalOrder()">🔄 Сбросить порядок</button>
+            </div>
         </div>
 
         <div id="debugInfo" class="debug-info" style="display: none;">
@@ -653,6 +827,8 @@
 
     <!-- Подключаем Supabase клиент -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+    <!-- Подключаем SortableJS для перетаскивания -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
 
     <script>
         // КОНФИГУРАЦИЯ SUPABASE
@@ -685,6 +861,9 @@
         let objects = [];
         let vacancyData = {};
         let debugMode = false;
+        let globalOrder = []; // Глобальный порядок для всех пользователей
+        let sortableInstances = [];
+        let hasUnsavedChanges = false;
 
         // БАЗОВАЯ СТРУКТУРА ОБЪЕКТОВ
         const objectsBase = [
@@ -752,10 +931,10 @@
                 id: 7,
                 name: "Клинский мясокомбинат",
                 ageMin: 18,
-                ageMax: 60,
+                ageMax: 50,
                 allowedGenders: ["мужчина", "женщина"],
-                allowedNationalities: ["РФ", "РБ"],
-                allowsConviction: true,
+                allowedNationalities: ["РФ", "РБ", "СНГ"],
+                allowsConviction: false,
                 link: "https://docs.google.com/spreadsheets/d/13FLpkCRuY8Bhdq8VzAsUMXlH-O6DcnwMlb3a1d82z44/edit?gid=484336549#gid=484336549"
             },
             {
@@ -782,7 +961,7 @@
                 id: 10,
                 name: "ФитнесШок",
                 ageMin: 18,
-                ageMax: 60,
+                ageMax: 50,
                 allowedGenders: ["мужчина", "женщина"],
                 allowedNationalities: ["РФ", "РБ"],
                 allowsConviction: true,
@@ -1103,6 +1282,21 @@
                 
                 if (error) throw error;
                 
+                // Загружаем глобальный порядок объектов
+                const { data: orderData, error: orderError } = await supabase
+                    .from('global_objects_order')
+                    .select('*')
+                    .single();
+                
+                if (!orderError && orderData && orderData.object_order) {
+                    globalOrder = orderData.object_order;
+                    console.log('Загружен глобальный порядок:', globalOrder);
+                } else {
+                    // Если глобального порядка нет, создаем стандартный
+                    globalOrder = objectsBase.map(obj => obj.id);
+                    console.log('Создан стандартный порядок:', globalOrder);
+                }
+                
                 // Объединяем базовые данные с настройками из базы
                 objects = objectsBase.map(baseObj => {
                     const serverSettings = data.find(s => s.id === baseObj.id);
@@ -1123,6 +1317,7 @@
                 updateSyncStatus('❌ Ошибка загрузки');
                 // Если ошибка, используем базовые настройки
                 objects = objectsBase.map(obj => ({ ...obj, visible: true, priority: false }));
+                globalOrder = objectsBase.map(obj => obj.id);
                 return objects;
             }
         }
@@ -1155,6 +1350,33 @@
                 console.error('Ошибка сохранения:', error);
                 updateSyncStatus('❌ Ошибка сохранения');
                 alert('Ошибка сохранения настроек: ' + error.message);
+            }
+        }
+
+        async function saveGlobalOrderToServer() {
+            if (currentAccessLevel !== "admin") return;
+            
+            try {
+                updateSyncStatus('💾 Сохранение глобального порядка...');
+                
+                const { error } = await supabase
+                    .from('global_objects_order')
+                    .upsert({
+                        id: 1,
+                        object_order: globalOrder,
+                        updated_at: new Date().toISOString()
+                    });
+                
+                if (error) throw error;
+                
+                hasUnsavedChanges = false;
+                updateSaveButtonState();
+                updateSyncStatus('✅ Глобальный порядок сохранен');
+                console.log('Глобальный порядок сохранен:', globalOrder);
+            } catch (error) {
+                console.error('Ошибка сохранения глобального порядка:', error);
+                updateSyncStatus('❌ Ошибка сохранения порядка');
+                alert('Ошибка сохранения порядка: ' + error.message);
             }
         }
 
@@ -1368,6 +1590,7 @@
             
             const userInfo = document.getElementById('userInfo');
             const burgerMenu = document.getElementById('burgerMenu');
+            const adminControls = document.getElementById('adminControls');
             
             // Загружаем настройки с сервера
             await loadSettingsFromServer();
@@ -1384,7 +1607,9 @@
                     </div>
                 `;
                 burgerMenu.style.display = 'flex';
+                adminControls.style.display = 'block';
                 fillMenuWithObjects();
+                initSortable();
             } else {
                 userInfo.innerHTML = `
                     <div class="user-badge-container">
@@ -1394,6 +1619,7 @@
                     </div>
                 `;
                 burgerMenu.style.display = 'none';
+                adminControls.style.display = 'none';
             }
             
             filterAndDisplayObjects();
@@ -1422,11 +1648,21 @@
             const menuItems = document.getElementById('menuItems');
             menuItems.innerHTML = '';
             
-            objects.forEach(obj => {
+            // Сортируем объекты по глобальному порядку
+            const sortedObjects = [...objects].sort((a, b) => {
+                const indexA = globalOrder.indexOf(a.id);
+                const indexB = globalOrder.indexOf(b.id);
+                return indexA - indexB;
+            });
+            
+            sortedObjects.forEach((obj, index) => {
                 const menuItem = document.createElement('div');
                 menuItem.className = 'menu-item';
+                menuItem.setAttribute('data-id', obj.id);
                 menuItem.innerHTML = `
                     <label class="menu-checkbox">
+                        ${currentAccessLevel === "admin" ? '<span class="drag-handle">⋮⋮</span>' : ''}
+                        <span class="order-number">${index + 1}</span>
                         <input type="checkbox" ${obj.visible ? 'checked' : ''} 
                                onchange="toggleObjectVisibility(${obj.id}, this.checked)">
                         <span class="checkmark"></span>
@@ -1446,6 +1682,126 @@
                 `;
                 menuItems.appendChild(menuItem);
             });
+            
+            updateSaveButtonState();
+        }
+
+        function updateSaveButtonState() {
+            const saveButton = document.getElementById('saveOrderBtn');
+            const adminControls = document.getElementById('adminControls');
+            
+            if (saveButton && adminControls) {
+                if (hasUnsavedChanges) {
+                    saveButton.innerHTML = '💾 Сохранить порядок *';
+                    saveButton.style.background = '#e74c3c';
+                    adminControls.classList.add('unsaved-changes');
+                } else {
+                    saveButton.innerHTML = '💾 Сохранить порядок';
+                    saveButton.style.background = '#27ae60';
+                    adminControls.classList.remove('unsaved-changes');
+                }
+            }
+        }
+
+        // ФУНКЦИИ ДЛЯ СОРТИРОВКИ
+        function initSortable() {
+            // Уничтожаем предыдущие экземпляры
+            sortableInstances.forEach(instance => instance.destroy());
+            sortableInstances = [];
+            
+            // Сортировка в меню (только для админа)
+            if (currentAccessLevel === "admin") {
+                const menuItems = document.getElementById('menuItems');
+                if (menuItems) {
+                    const menuSortable = new Sortable(menuItems, {
+                        animation: 150,
+                        ghostClass: 'sortable-ghost',
+                        handle: '.drag-handle',
+                        onEnd: function(evt) {
+                            updateGlobalOrderFromMenu();
+                        }
+                    });
+                    sortableInstances.push(menuSortable);
+                }
+            }
+        }
+
+        function initResultsSortable() {
+            const resultsContainer = document.getElementById('results');
+            if (resultsContainer && window.Sortable) {
+                // Уничтожаем предыдущий экземпляр
+                if (window.resultsSortable) {
+                    window.resultsSortable.destroy();
+                }
+                
+                window.resultsSortable = new Sortable(resultsContainer, {
+                    animation: 150,
+                    ghostClass: 'sortable-ghost',
+                    handle: '.drag-handle-main',
+                    filter: '.no-results',
+                    onEnd: function(evt) {
+                        updateGlobalOrderFromResults();
+                    }
+                });
+            }
+        }
+
+        function updateGlobalOrderFromMenu() {
+            const menuItems = document.getElementById('menuItems');
+            const newOrder = Array.from(menuItems.children).map(item => 
+                parseInt(item.getAttribute('data-id'))
+            );
+            globalOrder = newOrder;
+            hasUnsavedChanges = true;
+            
+            // Обновляем номера в меню
+            Array.from(menuItems.children).forEach((item, index) => {
+                const orderNumber = item.querySelector('.order-number');
+                if (orderNumber) {
+                    orderNumber.textContent = index + 1;
+                }
+            });
+            
+            // Обновляем отображение результатов
+            filterAndDisplayObjects();
+            updateSaveButtonState();
+        }
+
+        function updateGlobalOrderFromResults() {
+            const resultsContainer = document.getElementById('results');
+            const visibleObjects = Array.from(resultsContainer.children)
+                .filter(item => !item.classList.contains('no-results'))
+                .map(item => parseInt(item.getAttribute('data-id')))
+                .filter(id => !isNaN(id));
+            
+            if (visibleObjects.length > 0) {
+                // Обновляем порядок только для видимых объектов
+                const hiddenObjects = globalOrder.filter(id => !visibleObjects.includes(id));
+                globalOrder = [...visibleObjects, ...hiddenObjects];
+                hasUnsavedChanges = true;
+                
+                // Обновляем отображение (обновляем номера)
+                filterAndDisplayObjects();
+                updateSaveButtonState();
+                
+                // Показываем уведомление
+                updateSyncStatus('🔄 Порядок изменен (не сохранен)');
+            }
+        }
+
+        async function saveGlobalOrder() {
+            await saveGlobalOrderToServer();
+        }
+
+        async function resetGlobalOrder() {
+            if (confirm('Вернуть стандартный порядок объектов? Это повлияет на всех пользователей.')) {
+                globalOrder = objectsBase.map(obj => obj.id);
+                await saveGlobalOrderToServer();
+                fillMenuWithObjects();
+                initSortable();
+                filterAndDisplayObjects();
+                updateSyncStatus('✅ Порядок сброшен');
+            }
         }
 
         async function toggleObjectVisibility(objectId, isVisible) {
@@ -1525,10 +1881,16 @@
         function displayResults(objectsToDisplay, resultsContainer, resultsCount) {
             resultsContainer.innerHTML = '';
             
+            // Сортируем объекты: сначала приоритетные, затем по глобальному порядку
             const sortedObjects = objectsToDisplay.sort((a, b) => {
+                // Сначала приоритетные
                 if (a.priority && !b.priority) return -1;
                 if (!a.priority && b.priority) return 1;
-                return 0;
+                
+                // Затем по глобальному порядку
+                const indexA = globalOrder.indexOf(a.id);
+                const indexB = globalOrder.indexOf(b.id);
+                return indexA - indexB;
             });
 
             const priorityCount = sortedObjects.filter(obj => obj.priority).length;
@@ -1539,13 +1901,20 @@
             if (sortedObjects.length === 0) {
                 resultsContainer.innerHTML = '<div class="no-results">❌ По заданным критериям объектов не найдено. Попробуйте изменить параметры фильтра.</div>';
             } else {
-                sortedObjects.forEach(obj => {
+                sortedObjects.forEach((obj, index) => {
                     const vacancyStats = getVacancyStats(obj.name);
                     const card = document.createElement('div');
                     card.className = `object-card ${obj.priority ? 'priority-card' : ''}`;
+                    card.setAttribute('data-id', obj.id);
+                    
+                    // Добавляем номер порядка и маркер перетаскивания для админа
+                    const orderNumber = currentAccessLevel === "admin" ? `<span class="order-badge">${index + 1}</span>` : '';
+                    const dragHandle = currentAccessLevel === "admin" ? '<div class="drag-handle-main">⋮⋮</div>' : '';
+                    
                     card.innerHTML = `
+                        ${dragHandle}
                         ${obj.priority ? '<div class="priority-badge">🚀 В приоритете</div>' : ''}
-                        <h3><a href="${obj.link}" target="_blank">${obj.name}</a></h3>
+                        <h3>${orderNumber}<a href="${obj.link}" target="_blank">${obj.name}</a></h3>
                         
                         <div class="vacancy-stats">
                             <div class="vacancy-stat">
@@ -1574,6 +1943,11 @@
                     `;
                     resultsContainer.appendChild(card);
                 });
+            }
+            
+            // Инициализируем перетаскивание в результатах для админа
+            if (currentAccessLevel === "admin") {
+                initResultsSortable();
             }
         }
 

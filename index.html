@@ -765,6 +765,7 @@
         
         <div class="sync-controls">
             <button onclick="manualSync()" class="sync-btn"><i class="fas fa-sync-alt"></i> Обновить данные</button>
+            <button onclick="debugSheetData()" class="sync-btn"><i class="fas fa-bug"></i> Отладка таблицы</button>
             <div class="sync-status" id="syncStatus"></div>
             <button class="debug-toggle" onclick="toggleDebug()">Отладка</button>
         </div>
@@ -1004,7 +1005,7 @@
                 ageMax: 55,
                 allowedGenders: ["мужчина", "женщина"],
                 allowedNationalities: ["РФ", "РБ"],
-                allowsConviction: true,
+                allowsConviction: false,
                 link: "https://docs.google.com/spreadsheets/d/13FLpkCRuY8Bhdq8VzAsUMXlH-O6DcnwMlb3a1d82z44/edit?gid=912447009#gid=912447009"
             },
             {
@@ -1080,7 +1081,184 @@
         ];
 
         // ФУНКЦИИ ДЛЯ РАБОТЫ С GOOGLE SHEETS
-        async function loadVacancyData() {
+async function loadVacancyData() {
+    try {
+        const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${SHEET_NAME}&range=${SHEET_RANGE}`;
+        
+        let response;
+        try {
+            response = await fetch(url);
+            if (!response.ok) throw new Error('Direct fetch failed');
+        } catch (err) {
+            response = await fetch(`https://corsproxy.io/?${encodeURIComponent(url)}`);
+        }
+        
+        if (!response.ok) {
+            throw new Error(`Ошибка HTTP: ${response.status}`);
+        }
+        
+        const text = await response.text();
+        const json = JSON.parse(text.substring(47).slice(0, -2));
+        
+        // Отладочная информация
+        if (debugMode) {
+            console.log('Raw data from Google Sheets:', json);
+            updateDebugInfo('Получены сырые данные из таблицы');
+        }
+        
+        // Преобразуем данные в удобный формат
+        vacancyData = {};
+        let foundObjects = 0;
+        
+        // Создаем карту для точного сопоставления с приоритетом более специфичных названий
+        const objectMappings = [
+            // Сначала специфичные названия (длинные, с уточнениями)
+            { pattern: 'спортмастер спб', objectName: 'Спортмастер СПБ' },
+            { pattern: 'спортмастерспб', objectName: 'Спортмастер СПБ' },
+            { pattern: 'спортмастер сб', objectName: 'Спортмастер СПБ' },
+            { pattern: 'спортмастер с-пб', objectName: 'Спортмастер СПБ' },
+            { pattern: 'спортмастер петербург', objectName: 'Спортмастер СПБ' },
+            { pattern: 'спортмастер питер', objectName: 'Спортмастер СПБ' },
+            
+            { pattern: 'клинские', objectName: 'Креветки Клинские' },
+            { pattern: 'клинский мясокомбинат', objectName: 'Клинский мясокомбинат' },
+            { pattern: 'мэйджер', objectName: 'Мэйджер' },
+            { pattern: 'майор', objectName: 'Мэйджер' },
+            { pattern: 'major', objectName: 'Мэйджер' },
+            
+            { pattern: 'павловская птицефабрика', objectName: 'Павловская птицефабрика' },
+            { pattern: 'павловская кур', objectName: 'Павловская птицефабрика' },
+            
+            // Особые случаи для Мираторга
+            { pattern: 'мираторг брянск', objectName: 'Мираторг Брянск' },
+            { pattern: 'мираторгбрянск', objectName: 'Мираторг Брянск' },
+            { pattern: 'брянск', objectName: 'Мираторг Брянск' },
+            
+            { pattern: 'мираторг тула', objectName: 'Мираторг Тула' },
+            { pattern: 'мираторгтула', objectName: 'Мираторг Тула' },
+            { pattern: 'тула', objectName: 'Мираторг Тула' },
+            
+            // Общий Мираторг (будет применяться если нет уточнения города)
+            { pattern: 'мираторг', objectName: 'Мираторг Брянск' },
+            
+            // ФитнесШок - добавляем различные варианты написания
+            { pattern: 'фитнессшок', objectName: 'ФитнесШок' },
+            { pattern: 'фитнесшок', objectName: 'ФитнесШок' },
+            { pattern: 'фитнес шок', objectName: 'ФитнесШок' },
+            { pattern: 'фитнес-шок', objectName: 'ФитнесШок' },
+            
+            // Цветы Раменское - добавляем различные варианты
+            { pattern: 'цветы раменское', objectName: 'Цветы Раменское' },
+            { pattern: 'цветы', objectName: 'Цветы Раменское' },
+            { pattern: 'раменское', objectName: 'Цветы Раменское' },
+            
+            // АртПак - добавляем варианты
+            { pattern: 'артпак', objectName: 'АртПак' },
+            { pattern: 'арт пак', objectName: 'АртПак' },
+            
+            // Мяснов - добавляем варианты
+            { pattern: 'мяснов', objectName: 'Мяснов' },
+            { pattern: 'мяснов дзержинск', objectName: 'Мяснов' },
+            
+            // Затем общие названия
+            { pattern: 'спортмастер', objectName: 'Спортмастер' },
+            { pattern: 'сберлогистика', objectName: 'Сберлогистика' },
+            { pattern: 'сдт', objectName: 'СДТ' },
+            { pattern: 'креветки', objectName: 'Креветки Клинские' },
+            { pattern: 'метро', objectName: 'Метро' },
+            { pattern: 'агама', objectName: 'Агама' },
+            { pattern: 'тамбовский', objectName: 'Тамбовский бекон' },
+            { pattern: 'белгранкорм', objectName: 'БелГранКорм' },
+            { pattern: 'индейка калуга', objectName: 'Индейка Калуга' },
+            { pattern: 'куулклевер', objectName: 'КуулКлевер' },
+            { pattern: 'яндекс тарный', objectName: 'Яндекс Тарный' }
+        ];
+        
+        json.table.rows.forEach((row, index) => {
+            if (row.c && row.c.length > 0 && row.c[0] && row.c[0].v) {
+                const rawName = row.c[0].v.toString().trim();
+                const cleanName = rawName.toLowerCase().replace(/\s+/g, ' ');
+                
+                let matchedObjectName = null;
+                let bestMatchLength = 0;
+                
+                // Ищем по приоритетным сопоставлениям (от специфичных к общим)
+                for (const mapping of objectMappings) {
+                    if (cleanName.includes(mapping.pattern)) {
+                        // Выбираем наиболее специфичное совпадение (самое длинное)
+                        if (mapping.pattern.length > bestMatchLength) {
+                            matchedObjectName = mapping.objectName;
+                            bestMatchLength = mapping.pattern.length;
+                        }
+                    }
+                }
+                
+                if (matchedObjectName) {
+                    foundObjects++;
+                    const menValue = row.c[1] ? (parseInt(row.c[1].v) || 0) : 0;
+                    const womenValue = row.c[2] ? (parseInt(row.c[2].v) || 0) : 0;
+                    const familyValue = row.c[3] ? (parseInt(row.c[3].v) || 0) : 0;
+                    
+                    // Если объект уже найден, выбираем тот, у которого больше сумма вакансий
+                    if (!vacancyData[matchedObjectName] || 
+                        (menValue + womenValue + familyValue) > 
+                        (vacancyData[matchedObjectName].men + vacancyData[matchedObjectName].women + vacancyData[matchedObjectName].family)) {
+                        vacancyData[matchedObjectName] = {
+                            men: menValue,
+                            women: womenValue,
+                            family: familyValue,
+                            rawName: rawName
+                        };
+                    }
+                    
+                    if (debugMode) {
+                        console.log(`Сопоставлено: "${rawName}" -> "${matchedObjectName}"`, {men: menValue, women: womenValue, family: familyValue});
+                        updateDebugInfo(`Сопоставлено: "${rawName}" -> "${matchedObjectName}" (М:${menValue}, Ж:${womenValue}, С:${familyValue})`);
+                    }
+                } else if (debugMode) {
+                    console.log(`Не найдено соответствие для: "${rawName}"`);
+                    updateDebugInfo(`Не найдено: "${rawName}"`);
+                }
+            }
+        });
+        
+        // Заполняем нулями объекты, для которых не нашли данные
+        objectsBase.forEach(obj => {
+            if (!vacancyData[obj.name]) {
+                vacancyData[obj.name] = {
+                    men: 0,
+                    women: 0,
+                    family: 0,
+                    rawName: 'Не найдено в таблице'
+                };
+            }
+        });
+        
+        if (debugMode) {
+            updateDebugInfo(`Всего найдено совпадений: ${foundObjects}`);
+            updateDebugInfo(`Объекты с данными: ${Object.keys(vacancyData).join(', ')}`);
+        }
+        
+        return vacancyData;
+    } catch (err) {
+        console.error('Ошибка загрузки данных о вакансиях:', err);
+        if (debugMode) {
+            updateDebugInfo(`Ошибка: ${err.message}`);
+        }
+        // Возвращаем пустые данные для всех объектов при ошибке
+        objectsBase.forEach(obj => {
+            vacancyData[obj.name] = {
+                men: 0,
+                women: 0,
+                family: 0,
+                rawName: 'Ошибка загрузки'
+            };
+        });
+        return vacancyData;
+    }
+}
+
+        async function debugSheetData() {
             try {
                 const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${SHEET_NAME}&range=${SHEET_RANGE}`;
                 
@@ -1092,156 +1270,21 @@
                     response = await fetch(`https://corsproxy.io/?${encodeURIComponent(url)}`);
                 }
                 
-                if (!response.ok) {
-                    throw new Error(`Ошибка HTTP: ${response.status}`);
-                }
-                
                 const text = await response.text();
                 const json = JSON.parse(text.substring(47).slice(0, -2));
                 
-                // Отладочная информация
-                if (debugMode) {
-                    console.log('Raw data from Google Sheets:', json);
-                    updateDebugInfo('Получены сырые данные из таблицы');
-                }
-                
-                // Преобразуем данные в удобный формат
-                vacancyData = {};
-                let foundObjects = 0;
-                
-                // Создаем карту для точного сопоставления с приоритетом более специфичных названий
-                const objectMappings = [
-                    // Сначала специфичные названия (длинные, с уточнениями)
-                    { pattern: 'спортмастер спб', objectName: 'Спортмастер СПБ' },
-                    { pattern: 'спортмастерспб', objectName: 'Спортмастер СПБ' },
-                    { pattern: 'спортмастер сб', objectName: 'Спортмастер СПБ' },
-                    { pattern: 'спортмастер с-пб', objectName: 'Спортмастер СПБ' },
-                    { pattern: 'спортмастер петербург', objectName: 'Спортмастер СПБ' },
-                    { pattern: 'спортмастер питер', objectName: 'Спортмастер СПБ' },
-                    
-                    { pattern: 'клинские', objectName: 'Креветки Клинские' },
-                    { pattern: 'клинский мясокомбинат', objectName: 'Клинский мясокомбинат' },
-                    { pattern: 'мэйджер', objectName: 'Мэйджер' },
-                    { pattern: 'майор', objectName: 'Мэйджер' },
-                    { pattern: 'major', objectName: 'Мэйджер' },
-                    
-                    { pattern: 'павловская птицефабрика', objectName: 'Павловская птицефабрика' },
-                    { pattern: 'павловская кур', objectName: 'Павловская птицефабрика' },
-                    
-                    // Особые случаи для Мираторга
-                    { pattern: 'мираторг брянск', objectName: 'Мираторг Брянск' },
-                    { pattern: 'мираторгбрянск', objectName: 'Мираторг Брянск' },
-                    { pattern: 'брянск', objectName: 'Мираторг Брянск' },
-                    
-                    { pattern: 'мираторг тула', objectName: 'Мираторг Тула' },
-                    { pattern: 'мираторгтула', objectName: 'Мираторг Тула' },
-                    { pattern: 'тула', objectName: 'Мираторг Тула' },
-                    
-                    // Общий Мираторг (будет применяться если нет уточнения города)
-                    { pattern: 'мираторг', objectName: 'Мираторг Брянск' },
-                    
-                    // Затем общие названия
-                    { pattern: 'спортмастер', objectName: 'Спортмастер' },
-                    { pattern: 'сберлогистика', objectName: 'Сберлогистика' },
-                    { pattern: 'сдт', objectName: 'СДТ' },
-                    { pattern: 'креветки', objectName: 'Креветки Клинские' },
-                    { pattern: 'метро', objectName: 'Метро' },
-                    { pattern: 'цветы', objectName: 'Цветы Раменское' },
-                    { pattern: 'агама', objectName: 'Агама' },
-                    { pattern: 'фитнессшок', objectName: 'ФитнесШок' },
-                    { pattern: 'тамбовский', objectName: 'Тамбовский бекон' },
-                    { pattern: 'артпак', objectName: 'АртПак' },
-                    { pattern: 'мяснов', objectName: 'Мяснов' },
-                    { pattern: 'белгранкорм', objectName: 'БелГранКорм' },
-                    { pattern: 'индейка калуга', objectName: 'Индейка Калуга' },
-                    { pattern: 'куулклевер', objectName: 'КуулКлевер' },
-                    { pattern: 'яндекс тарный', objectName: 'Яндекс Тарный' }
-                ];
-                
+                console.log('DEBUG - Все данные из таблицы:');
                 json.table.rows.forEach((row, index) => {
-                    if (row.c && row.c.length > 0 && row.c[0] && row.c[0].v) {
-                        const rawName = row.c[0].v.toString().trim();
-                        const cleanName = rawName.toLowerCase().replace(/\s+/g, ' ');
-                        
-                        let matchedObjectName = null;
-                        
-                        // Ищем по приоритетным сопоставлениям (от специфичных к общим)
-                        for (const mapping of objectMappings) {
-                            if (cleanName.includes(mapping.pattern)) {
-                                matchedObjectName = mapping.objectName;
-                                
-                                // Если нашли специфичное совпадение, выходим из цикла
-                                if (mapping.pattern.includes('спб') || mapping.pattern.includes('петербург') || 
-                                    mapping.pattern.includes('клинские') || mapping.pattern.includes('мясокомбинат') ||
-                                    mapping.pattern.includes('птицефабрика') || mapping.pattern.includes('брянск') ||
-                                    mapping.pattern.includes('тула')) {
-                                    break;
-                                }
-                            }
-                        }
-                        
-                        if (matchedObjectName) {
-                            foundObjects++;
-                            const menValue = row.c[1] ? (parseInt(row.c[1].v) || 0) : 0;
-                            const womenValue = row.c[2] ? (parseInt(row.c[2].v) || 0) : 0;
-                            const familyValue = row.c[3] ? (parseInt(row.c[3].v) || 0) : 0;
-                            
-                            // Если объект уже найден, выбираем тот, у которого больше сумма вакансий
-                            if (!vacancyData[matchedObjectName] || 
-                                (menValue + womenValue + familyValue) > 
-                                (vacancyData[matchedObjectName].men + vacancyData[matchedObjectName].women + vacancyData[matchedObjectName].family)) {
-                                vacancyData[matchedObjectName] = {
-                                    men: menValue,
-                                    women: womenValue,
-                                    family: familyValue,
-                                    rawName: rawName
-                                };
-                            }
-                            
-                            if (debugMode) {
-                                console.log(`Сопоставлено: "${rawName}" -> "${matchedObjectName}"`, {men: menValue, women: womenValue, family: familyValue});
-                                updateDebugInfo(`Сопоставлено: "${rawName}" -> "${matchedObjectName}" (М:${menValue}, Ж:${womenValue}, С:${familyValue})`);
-                            }
-                        } else if (debugMode) {
-                            console.log(`Не найдено соответствие для: "${rawName}"`);
-                            updateDebugInfo(`Не найдено: "${rawName}"`);
-                        }
+                    if (row.c && row.c.length > 0) {
+                        const rowData = row.c.map(cell => cell ? cell.v : '');
+                        console.log(`Строка ${index + 1}:`, rowData);
                     }
                 });
                 
-                // Заполняем нулями объекты, для которых не нашли данные
-                objectsBase.forEach(obj => {
-                    if (!vacancyData[obj.name]) {
-                        vacancyData[obj.name] = {
-                            men: 0,
-                            women: 0,
-                            family: 0,
-                            rawName: 'Не найдено в таблице'
-                        };
-                    }
-                });
-                
-                if (debugMode) {
-                    updateDebugInfo(`Всего найдено совпадений: ${foundObjects}`);
-                    updateDebugInfo(`Объекты с данными: ${Object.keys(vacancyData).join(', ')}`);
-                }
-                
-                return vacancyData;
+                alert('Данные для отладки выведены в консоль (F12)');
             } catch (err) {
-                console.error('Ошибка загрузки данных о вакансиях:', err);
-                if (debugMode) {
-                    updateDebugInfo(`Ошибка: ${err.message}`);
-                }
-                // Возвращаем пустые данные для всех объектов при ошибке
-                objectsBase.forEach(obj => {
-                    vacancyData[obj.name] = {
-                        men: 0,
-                        women: 0,
-                        family: 0,
-                        rawName: 'Ошибка загрузки'
-                    };
-                });
-                return vacancyData;
+                console.error('Ошибка отладки:', err);
+                alert('Ошибка загрузки данных для отладки');
             }
         }
 
