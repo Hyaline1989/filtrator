@@ -63,7 +63,7 @@ const objectsBase = [
         id: 5,
         name: "Спортмастер",
         ageMin: 18,
-        ageMax: 50,
+        ageMax: 45,
         allowedGenders: ["мужчина", "женщина"],
         allowedNationalities: ["РФ"],
         allowsConviction: false,
